@@ -24,7 +24,7 @@ class UserModel {
     return {
       'email': email,
       'names': names,
-      'role': role,
+      'role': role.name,
       'location': location,
       'skills': skills,
     };
