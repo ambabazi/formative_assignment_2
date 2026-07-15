@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/startup_model.dart';
+import '../../models/opportunity_model.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/opportunity_provider.dart';
 import '../../utils/alu_theme.dart';
@@ -8,6 +9,47 @@ import 'post_opportunity.dart';
 
 class StartupDashboardScreen extends ConsumerWidget {
   const StartupDashboardScreen({super.key});
+
+  Future<void> deleteOpportunity(
+    BuildContext context,
+    WidgetRef ref,
+    OpportunityModel opp,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete opportunity?'),
+        content: Text('Remove "${opp.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ref.read(opportunityRepoProvider).delete(opp.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Opportunity deleted')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not delete: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -106,25 +148,36 @@ class StartupDashboardScreen extends ConsumerWidget {
                             color: AluColors.white,
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Column(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                opp.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AluColors.navy,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      opp.title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AluColors.navy,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      opp.description,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AluColors.lightGrey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                opp.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AluColors.lightGrey,
-                                ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: AluColors.red),
+                                onPressed: () => deleteOpportunity(context, ref, opp),
                               ),
                             ],
                           ),

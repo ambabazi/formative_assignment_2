@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAluEmail() {
+      return request.auth.token.email.matches('.*@(alustudent[.]com|alueducation[.]com)$');
+    }
+
+    function userData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userData().role == 'admin';
+    }
+
+    function isStartupAdmin() {
+      return isSignedIn() && userData().role == 'startupAdmin';
+    }
+
+    function isStudent() {
+      return isSignedIn() && userData().role == 'student';
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isAluEmail();
+      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /startups/{startupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isAluEmail()
+        && request.resource.data.adminId == request.auth.uid
+        && request.resource.data.verified == false;
+      allow update: if isAdmin()
+        || (isStartupAdmin()
+            && resource.data.adminId == request.auth.uid
+            && request.resource.data.verified == resource.data.verified);
+      allow delete: if false;
+    }
+
+    match /opportunities/{oppId} {
+      allow read: if isSignedIn();
+      allow create: if isStartupAdmin()
+        && request.resource.data.startupId == userData().startupId;
+      allow update, delete: if isStartupAdmin()
+        && resource.data.startupId == userData().startupId;
+    }
+
+    match /applications/{appId} {
+      allow read: if isSignedIn()
+        && (resource.data.studentId == request.auth.uid || isStartupAdmin());
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid;
+      allow update: if isStartupAdmin();
+      allow delete: if false;
+    }
+  }
+}
