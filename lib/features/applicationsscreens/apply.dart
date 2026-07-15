@@ -6,6 +6,7 @@ import '../../models/opportunity_model.dart';
 import '../../providers/application_providers.dart';
 import '../../providers/auth_providers.dart';
 import '../../utils/skill_matcher.dart';
+import '../../utils/alu_theme.dart';
 
 class ApplyScreen extends ConsumerStatefulWidget {
   final OpportunityModel opportunity;
@@ -53,6 +54,12 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     }
   }
 
+  Color matchColor(int percent) {
+    if (percent >= 70) return Colors.green;
+    if (percent >= 40) return Colors.orange;
+    return AluColors.lightGrey;
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(loggedInUserProvider);
@@ -65,38 +72,107 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     final matchPercent = (match * 100).round();
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.opportunity.title)),
+      backgroundColor: AluColors.surface,
+      appBar: AppBar(
+        title: const Text('Opportunity Details'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.opportunity.description,
-              style: Theme.of(context).textTheme.bodyLarge,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AluColors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.opportunity.title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AluColors.navy,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (widget.opportunity.location.isNotEmpty)
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 16, color: AluColors.lightGrey),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.opportunity.location,
+                          style: const TextStyle(color: AluColors.lightGrey),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.opportunity.description,
+                    style: const TextStyle(height: 1.5),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
-            Text('Your match: $matchPercent%'),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: matchColor(matchPercent).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: matchColor(matchPercent).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.psychology_outlined, color: matchColor(matchPercent)),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Your match: $matchPercent%',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: matchColor(matchPercent),
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Skills Required',
+              style: TextStyle(fontWeight: FontWeight.bold, color: AluColors.navy),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: widget.opportunity.skillsRequired
                   .map((skill) => Chip(label: Text(skill)))
                   .toList(),
             ),
             const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: isLoading ? null : handleApply,
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Apply Now'),
-              ),
+            FilledButton(
+              onPressed: isLoading ? null : handleApply,
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AluColors.white,
+                      ),
+                    )
+                  : const Text('Apply Now'),
             ),
           ],
         ),

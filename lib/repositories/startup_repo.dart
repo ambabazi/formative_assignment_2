@@ -17,12 +17,55 @@ class StartupRepo {
     return list;
   }
 
+  Future<List<StartupModel>> getVerified() async {
+    final snapshot = await db
+        .collection(collectionName)
+        .where('verified', isEqualTo: true)
+        .get();
+
+    final List<StartupModel> list = [];
+
+    for (final doc in snapshot.docs) {
+      list.add(StartupModel.fromFirestore(doc.data(), doc.id));
+    }
+
+    return list;
+  }
+
+  Future<List<StartupModel>> getUnverified() async {
+    final snapshot = await db
+        .collection(collectionName)
+        .where('verified', isEqualTo: false)
+        .get();
+
+    final List<StartupModel> list = [];
+
+    for (final doc in snapshot.docs) {
+      list.add(StartupModel.fromFirestore(doc.data(), doc.id));
+    }
+
+    return list;
+  }
+
   Future<StartupModel?> getById(String id) async {
     final doc = await db.collection(collectionName).doc(id).get();
 
     if (!doc.exists) return null;
 
     return StartupModel.fromFirestore(doc.data()!, doc.id);
+  }
+
+  Future<StartupModel?> getByAdminId(String adminId) async {
+    final snapshot = await db
+        .collection(collectionName)
+        .where('adminId', isEqualTo: adminId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+
+    final doc = snapshot.docs.first;
+    return StartupModel.fromFirestore(doc.data(), doc.id);
   }
 
   Future<String> create(StartupModel startup) async {
@@ -37,5 +80,9 @@ class StartupRepo {
         .collection(collectionName)
         .doc(startup.id)
         .update(startup.toFirestore());
+  }
+
+  Future<void> setVerified(String id, bool verified) async {
+    await db.collection(collectionName).doc(id).update({'verified': verified});
   }
 }

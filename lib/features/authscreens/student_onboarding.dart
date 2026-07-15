@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/opportunity_model.dart';
 import '../../providers/auth_providers.dart';
-import '../../providers/opportunity_provider.dart';
 import '../../utils/alu_theme.dart';
 
-class PostOpportunityScreen extends ConsumerStatefulWidget {
-  const PostOpportunityScreen({super.key});
+class StudentOnboardingScreen extends ConsumerStatefulWidget {
+  const StudentOnboardingScreen({super.key});
 
   @override
-  ConsumerState<PostOpportunityScreen> createState() =>
-      _PostOpportunityScreenState();
+  ConsumerState<StudentOnboardingScreen> createState() =>
+      _StudentOnboardingScreenState();
 }
 
-class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
-  final titleController = TextEditingController();
-  final descriptionController = TextEditingController();
-  final locationController = TextEditingController();
+class _StudentOnboardingScreenState extends ConsumerState<StudentOnboardingScreen> {
+  final locationController = TextEditingController(text: 'Kigali, Rwanda');
   final skillController = TextEditingController();
   final List<String> skills = [];
   bool isLoading = false;
@@ -31,31 +27,13 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
     });
   }
 
-  Future<void> handlePost() async {
+  Future<void> finish() async {
     final user = ref.read(loggedInUserProvider);
     if (user == null) return;
 
-    if (user.startupId.isEmpty) {
+    if (skills.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Register your startup first')),
-      );
-      return;
-    }
-
-    final startup = await ref.read(startupRepoProvider).getById(user.startupId);
-    if (!mounted) return;
-    if (startup == null || !startup.verified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your startup must be verified by ALU before posting')),
-      );
-      return;
-    }
-
-    if (titleController.text.trim().isEmpty ||
-        descriptionController.text.trim().isEmpty ||
-        skills.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fill in all fields and add skills')),
+        const SnackBar(content: Text('Add at least one skill')),
       );
       return;
     }
@@ -63,28 +41,17 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
     setState(() => isLoading = true);
 
     try {
-      final opportunity = OpportunityModel(
-        id: '',
-        startupId: user.startupId,
-        title: titleController.text.trim(),
-        description: descriptionController.text.trim(),
+      await ref.read(authRepoProvider).completeStudentOnboarding(
+            uuid: user.uuid,
+            location: locationController.text.trim(),
+            skills: skills,
+          );
+
+      ref.read(loggedInUserProvider.notifier).state = user.copyWith(
         location: locationController.text.trim(),
-        skillsRequired: skills,
+        skills: skills,
+        onboardingComplete: true,
       );
-
-      await ref.read(opportunityRepoProvider).create(opportunity);
-      ref.invalidate(opportunitiesProvider);
-
-      titleController.clear();
-      descriptionController.clear();
-      locationController.clear();
-      setState(() => skills.clear());
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Opportunity posted')),
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -102,41 +69,24 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
       backgroundColor: AluColors.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: ListView(
             children: [
+              const SizedBox(height: 24),
               const Text(
-                'Post Opportunity',
+                'Welcome to ALU Connect',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: AluColors.navy,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Share an internship or role with ALU students',
+                'Tell us about your skills so we can match you with the right opportunities.',
                 style: TextStyle(color: AluColors.lightGrey),
               ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  prefixIcon: Icon(Icons.title),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  prefixIcon: Icon(Icons.description_outlined),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 4,
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
               TextField(
                 controller: locationController,
                 decoration: const InputDecoration(
@@ -151,7 +101,7 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
                     child: TextField(
                       controller: skillController,
                       decoration: const InputDecoration(
-                        labelText: 'Required skill',
+                        labelText: 'Add a skill',
                         prefixIcon: Icon(Icons.psychology_outlined),
                       ),
                       onSubmitted: (_) => addSkill(),
@@ -182,7 +132,7 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
               ),
               const SizedBox(height: 32),
               FilledButton(
-                onPressed: isLoading ? null : handlePost,
+                onPressed: isLoading ? null : finish,
                 child: isLoading
                     ? const SizedBox(
                         height: 20,
@@ -192,7 +142,7 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
                           color: AluColors.white,
                         ),
                       )
-                    : const Text('Publish Opportunity'),
+                    : const Text('Continue'),
               ),
             ],
           ),
