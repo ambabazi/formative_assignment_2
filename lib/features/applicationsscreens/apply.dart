@@ -5,7 +5,7 @@ import '../../models/application_model.dart';
 import '../../models/opportunity_model.dart';
 import '../../providers/application_providers.dart';
 import '../../providers/auth_providers.dart';
-import '../../utils/skill_matcher.dart';
+import '../../providers/opportunity_provider.dart';
 import '../../utils/alu_theme.dart';
 
 class ApplyScreen extends ConsumerStatefulWidget {
@@ -54,22 +54,9 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     }
   }
 
-  Color matchColor(int percent) {
-    if (percent >= 70) return Colors.green;
-    if (percent >= 40) return Colors.orange;
-    return AluColors.lightGrey;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(loggedInUserProvider);
-    final match = user == null
-        ? 0.0
-        : SkillMatcher.calculateMatch(
-            studentSkills: user.skills,
-            requiredSkills: widget.opportunity.skillsRequired,
-          );
-    final matchPercent = (match * 100).round();
+    final startupAsync = ref.watch(myStartupProvider(widget.opportunity.startupId));
 
     return Scaffold(
       backgroundColor: AluColors.surface,
@@ -104,6 +91,34 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  startupAsync.when(
+                    data: (startup) => startup == null
+                        ? const SizedBox.shrink()
+                        : Row(
+                            children: [
+                              const Icon(
+                                Icons.business_outlined,
+                                size: 16,
+                                color: AluColors.red,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                startup.companyName,
+                                style: const TextStyle(
+                                  color: AluColors.navy,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                    loading: () => const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                  const SizedBox(height: 8),
                   if (widget.opportunity.location.isNotEmpty)
                     Row(
                       children: [
@@ -119,30 +134,6 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
                   Text(
                     widget.opportunity.description,
                     style: const TextStyle(height: 1.5),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: matchColor(matchPercent).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: matchColor(matchPercent).withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.psychology_outlined, color: matchColor(matchPercent)),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Your match: $matchPercent%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: matchColor(matchPercent),
-                      fontSize: 16,
-                    ),
                   ),
                 ],
               ),

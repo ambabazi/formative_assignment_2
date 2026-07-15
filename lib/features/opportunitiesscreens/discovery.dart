@@ -4,7 +4,6 @@ import '../../models/opportunity_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/opportunity_provider.dart';
-import '../../utils/skill_matcher.dart';
 import '../../utils/alu_theme.dart';
 import '../applicationsscreens/apply.dart';
 
@@ -122,23 +121,6 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  if (filtered.isNotEmpty) ...[
-                    const Text(
-                      'Recommended',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AluColors.navy,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _FeaturedCard(
-                      opportunity: filtered.first,
-                      user: user,
-                      onTap: () => _openApply(context, filtered.first, user),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
                   const Text(
                     'Recent Opportunities',
                     style: TextStyle(
@@ -155,19 +137,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     )
                   else
                     ...filtered.map((opp) {
-                      final match = user == null
-                          ? 0.0
-                          : SkillMatcher.calculateMatch(
-                              studentSkills: user.skills,
-                              requiredSkills: opp.skillsRequired,
-                            );
-                      final matchPercent = (match * 100).round();
-
                       return _OpportunityCard(
                         opportunity: opp,
-                        matchPercent: matchPercent,
-                        showMatch: user?.role == UserRole.student,
                         onTap: () => _openApply(context, opp, user),
+                        canApply: user?.role == UserRole.student,
                       );
                     }),
                 ],
@@ -191,98 +164,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   }
 }
 
-class _FeaturedCard extends StatelessWidget {
-  final OpportunityModel opportunity;
-  final UserModel? user;
-  final VoidCallback onTap;
-
-  const _FeaturedCard({
-    required this.opportunity,
-    required this.user,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: user?.role == UserRole.student ? onTap : null,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AluColors.navy, Color(0xFF003D7A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AluColors.red,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Featured',
-                style: TextStyle(color: AluColors.white, fontSize: 11),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              opportunity.title,
-              style: const TextStyle(
-                color: AluColors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              opportunity.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AluColors.lightGrey, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            if (opportunity.skillsRequired.isNotEmpty)
-              Wrap(
-                spacing: 6,
-                children: opportunity.skillsRequired
-                    .take(3)
-                    .map<Widget>((s) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AluColors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            s,
-                            style: const TextStyle(color: AluColors.white, fontSize: 11),
-                          ),
-                        ))
-                    .toList(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _OpportunityCard extends StatelessWidget {
   final OpportunityModel opportunity;
-  final int matchPercent;
-  final bool showMatch;
+  final bool canApply;
   final VoidCallback onTap;
 
   const _OpportunityCard({
     required this.opportunity,
-    required this.matchPercent,
-    required this.showMatch,
+    required this.canApply,
     required this.onTap,
   });
 
@@ -323,24 +212,8 @@ class _OpportunityCard extends StatelessWidget {
             ],
           ],
         ),
-        trailing: showMatch
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AluColors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$matchPercent%',
-                  style: const TextStyle(
-                    color: AluColors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              )
-            : null,
-        onTap: showMatch ? onTap : null,
+        trailing: canApply ? const Icon(Icons.chevron_right, color: AluColors.lightGrey) : null,
+        onTap: canApply ? onTap : null,
       ),
     );
   }
