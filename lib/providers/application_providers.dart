@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/application_repo.dart';
-import '../repositories/opportunity_repo.dart';
+import 'opportunity_provider.dart';
 import 'auth_providers.dart';
 import '../models/application_model.dart';
 import '../models/opportunity_model.dart';
@@ -10,9 +10,8 @@ final applicationRepoProvider = Provider<ApplicationRepo>((ref) {
 });
 
 final myApplicationsProvider =
-    FutureProvider.family<List<ApplicationModel>, String>((ref, studentId) async {
-  final repo = ref.watch(applicationRepoProvider);
-  return repo.getByStudent(studentId);
+    StreamProvider.family<List<ApplicationModel>, String>((ref, studentId) {
+  return ref.watch(applicationRepoProvider).watchByStudent(studentId);
 });
 
 class StartupApplicationItem {
@@ -28,18 +27,22 @@ class StartupApplicationItem {
 }
 
 final startupApplicationsProvider =
-    FutureProvider.family<List<StartupApplicationItem>, String>((ref, startupId) async {
+    StreamProvider.family<List<StartupApplicationItem>, String>((ref, startupId) {
+  if (startupId.isEmpty) return Stream.value([]);
+
   final appRepo = ref.watch(applicationRepoProvider);
-  final oppRepo = OpportunityRepo();
+  final oppRepo = ref.watch(opportunityRepoProvider);
   final authRepo = ref.watch(authRepoProvider);
 
-  final opportunities = await oppRepo.getByStartup(startupId);
-  final List<StartupApplicationItem> items = [];
+  return appRepo.watchAll().asyncMap((allApps) async {
+    final opportunities = await oppRepo.getByStartup(startupId);
+    final oppMap = {for (final opp in opportunities) opp.id: opp};
+    final List<StartupApplicationItem> items = [];
 
-  for (final opportunity in opportunities) {
-    final applications = await appRepo.getByOpportunity(opportunity.id);
+    for (final application in allApps) {
+      final opportunity = oppMap[application.opportunityId];
+      if (opportunity == null) continue;
 
-    for (final application in applications) {
       final student = await authRepo.getUserById(application.studentId);
 
       items.add(StartupApplicationItem(
@@ -48,7 +51,7 @@ final startupApplicationsProvider =
         studentName: student?.names ?? 'Unknown student',
       ));
     }
-  }
 
-  return items;
+    return items;
+  });
 });

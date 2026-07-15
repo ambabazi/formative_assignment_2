@@ -27,6 +27,34 @@ class ApplicationRepo {
     return list;
   }
 
+  Stream<List<ApplicationModel>> watchByStudent(String studentId) {
+    return db
+        .collection(collectionName)
+        .where('studentId', isEqualTo: studentId)
+        .snapshots()
+        .map((snapshot) {
+      final List<ApplicationModel> list = [];
+
+      for (final doc in snapshot.docs) {
+        list.add(ApplicationModel.fromFirestore(doc.data(), doc.id));
+      }
+
+      return list;
+    });
+  }
+
+  Stream<List<ApplicationModel>> watchAll() {
+    return db.collection(collectionName).snapshots().map((snapshot) {
+      final List<ApplicationModel> list = [];
+
+      for (final doc in snapshot.docs) {
+        list.add(ApplicationModel.fromFirestore(doc.data(), doc.id));
+      }
+
+      return list;
+    });
+  }
+
   Future<List<ApplicationModel>> getByOpportunity(String opportunityId) async {
     final snapshot = await db
         .collection(collectionName)

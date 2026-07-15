@@ -47,6 +47,22 @@ class StartupRepo {
     return list;
   }
 
+  Stream<List<StartupModel>> watchUnverified() {
+    return db
+        .collection(collectionName)
+        .where('verified', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) {
+      final List<StartupModel> list = [];
+
+      for (final doc in snapshot.docs) {
+        list.add(StartupModel.fromFirestore(doc.data(), doc.id));
+      }
+
+      return list;
+    });
+  }
+
   Future<StartupModel?> getById(String id) async {
     final doc = await db.collection(collectionName).doc(id).get();
 

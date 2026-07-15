@@ -20,6 +20,22 @@ class OpportunityRepo {
     return list;
   }
 
+  Stream<List<OpportunityModel>> watchAllOpen() {
+    return db
+        .collection(collectionName)
+        .where('status', isEqualTo: 'open')
+        .snapshots()
+        .map((snapshot) {
+      final List<OpportunityModel> list = [];
+
+      for (final doc in snapshot.docs) {
+        list.add(OpportunityModel.fromFirestore(doc.data(), doc.id));
+      }
+
+      return list;
+    });
+  }
+
   Future<OpportunityModel?> getById(String id) async {
     final doc = await db.collection(collectionName).doc(id).get();
 
@@ -59,5 +75,21 @@ class OpportunityRepo {
     }
 
     return list;
+  }
+
+  Stream<List<OpportunityModel>> watchByStartup(String startupId) {
+    return db
+        .collection(collectionName)
+        .where('startupId', isEqualTo: startupId)
+        .snapshots()
+        .map((snapshot) {
+      final List<OpportunityModel> list = [];
+
+      for (final doc in snapshot.docs) {
+        list.add(OpportunityModel.fromFirestore(doc.data(), doc.id));
+      }
+
+      return list;
+    });
   }
 }
