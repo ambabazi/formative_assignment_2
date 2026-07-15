@@ -4,7 +4,6 @@ import 'utils/alu_theme.dart';
 import 'providers/auth_providers.dart';
 import 'features/authscreens/signin.dart';
 import 'features/authscreens/student_onboarding.dart';
-import 'features/authscreens/startup_onboarding.dart';
 import 'features/authscreens/admin_verify.dart';
 import 'features/opportunitiesscreens/discovery.dart';
 import 'features/opportunitiesscreens/startup_dashboard.dart';
@@ -42,10 +41,7 @@ class AuthGate extends ConsumerWidget {
       return const AdminVerifyScreen();
     }
 
-    if (!user.onboardingComplete) {
-      if (user.role == UserRole.startupAdmin) {
-        return const StartupOnboardingScreen();
-      }
+    if (!user.onboardingComplete && user.role == UserRole.student) {
       return const StudentOnboardingScreen();
     }
 

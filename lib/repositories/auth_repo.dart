@@ -36,6 +36,8 @@ class AuthRepo {
       email: email,
       names: names,
       role: role,
+      onboardingComplete:
+          role == UserRole.startupAdmin || role == UserRole.admin,
     );
 
     await db.collection('users').doc(newUser.uuid).set(newUser.toFirestore());
@@ -103,5 +105,12 @@ class AuthRepo {
       'startupId': startupId,
       'onboardingComplete': true,
     });
+  }
+
+  Future<void> selectActiveStartup({
+    required String uuid,
+    required String startupId,
+  }) async {
+    await db.collection('users').doc(uuid).update({'startupId': startupId});
   }
 }

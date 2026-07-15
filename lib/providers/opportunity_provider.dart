@@ -31,6 +31,11 @@ final myStartupProvider = FutureProvider.family<StartupModel?, String>((ref, sta
   return ref.watch(startupRepoProvider).getById(startupId);
 });
 
+final myStartupsProvider = FutureProvider.family<List<StartupModel>, String>((ref, adminId) async {
+  if (adminId.isEmpty) return [];
+  return ref.watch(startupRepoProvider).getAllByAdminId(adminId);
+});
+
 final unverifiedStartupsProvider = StreamProvider<List<StartupModel>>((ref) {
   return ref.watch(startupRepoProvider).watchUnverified();
 });

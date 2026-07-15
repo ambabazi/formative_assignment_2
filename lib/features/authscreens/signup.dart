@@ -96,7 +96,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     ),
                     DropdownMenuItem(
                       value: UserRole.startupAdmin,
-                      child: Text('Startup Admin'),
+                      child: Text('Startup Admin (ALU student founder)'),
                     ),
                     DropdownMenuItem(
                       value: UserRole.admin,

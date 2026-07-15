@@ -72,17 +72,27 @@ class StartupRepo {
   }
 
   Future<StartupModel?> getByAdminId(String adminId) async {
+    final startups = await getAllByAdminId(adminId);
+    if (startups.isEmpty) return null;
+    return startups.first;
+  }
+
+  Future<List<StartupModel>> getAllByAdminId(String adminId) async {
     final snapshot = await db
         .collection(collectionName)
         .where('adminId', isEqualTo: adminId)
-        .limit(1)
         .get();
 
-    if (snapshot.docs.isEmpty) return null;
+    final List<StartupModel> list = [];
 
-    final doc = snapshot.docs.first;
-    return StartupModel.fromFirestore(doc.data(), doc.id);
+    for (final doc in snapshot.docs) {
+      list.add(StartupModel.fromFirestore(doc.data(), doc.id));
+    }
+
+    return list;
   }
+
+  static const int maxStartupsPerAdmin = 2;
 
   Future<String> create(StartupModel startup) async {
     final docRef =
