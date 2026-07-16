@@ -164,7 +164,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   }
 }
 
-class _OpportunityCard extends StatelessWidget {
+class _OpportunityCard extends ConsumerWidget {
   final OpportunityModel opportunity;
   final bool canApply;
   final VoidCallback onTap;
@@ -176,7 +176,9 @@ class _OpportunityCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final startupAsync = ref.watch(myStartupProvider(opportunity.startupId));
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -196,6 +198,24 @@ class _OpportunityCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 4),
+            startupAsync.when(
+              data: (startup) => Text(
+                startup?.companyName.trim().isNotEmpty == true
+                    ? startup!.companyName
+                    : 'Startup',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AluColors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              loading: () => const Text(
+                'Loading startup...',
+                style: TextStyle(fontSize: 12, color: AluColors.lightGrey),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
             const SizedBox(height: 4),
             Text(
               opportunity.description,

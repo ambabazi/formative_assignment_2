@@ -14,6 +14,51 @@ final myApplicationsProvider =
   return ref.watch(applicationRepoProvider).watchByStudent(studentId);
 });
 
+class StudentApplicationItem {
+  final ApplicationModel application;
+  final String opportunityTitle;
+  final String startupName;
+
+  StudentApplicationItem({
+    required this.application,
+    required this.opportunityTitle,
+    required this.startupName,
+  });
+}
+
+final myApplicationsEnrichedProvider =
+    StreamProvider.family<List<StudentApplicationItem>, String>((ref, studentId) {
+  final appRepo = ref.watch(applicationRepoProvider);
+  final oppRepo = ref.watch(opportunityRepoProvider);
+  final startupRepo = ref.watch(startupRepoProvider);
+
+  return appRepo.watchByStudent(studentId).asyncMap((applications) async {
+    final List<StudentApplicationItem> items = [];
+
+    for (final application in applications) {
+      final opportunity = await oppRepo.getById(application.opportunityId);
+      var opportunityTitle = 'Opportunity';
+      var startupName = 'Unknown startup';
+
+      if (opportunity != null) {
+        opportunityTitle = opportunity.title;
+        final startup = await startupRepo.getById(opportunity.startupId);
+        if (startup != null && startup.companyName.trim().isNotEmpty) {
+          startupName = startup.companyName;
+        }
+      }
+
+      items.add(StudentApplicationItem(
+        application: application,
+        opportunityTitle: opportunityTitle,
+        startupName: startupName,
+      ));
+    }
+
+    return items;
+  });
+});
+
 class StartupApplicationItem {
   final ApplicationModel application;
   final OpportunityModel opportunity;

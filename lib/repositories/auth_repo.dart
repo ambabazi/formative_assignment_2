@@ -22,8 +22,8 @@ class AuthRepo {
       throw Exception('Only ALU emails can register');
     }
 
-    if (role == UserRole.admin && !email.endsWith('@alueducation.com')) {
-      throw Exception('Admin accounts must use @alueducation.com email');
+    if (role == UserRole.admin) {
+      throw Exception('Admin accounts cannot be created through sign-up');
     }
 
     final result = await auth.createUserWithEmailAndPassword(

@@ -7,6 +7,7 @@ class StartupModel {
   final String website;
   final String adminId;
   final bool verified;
+  final bool rejected;
 
   const StartupModel({
     required this.id,
@@ -17,9 +18,10 @@ class StartupModel {
     this.website = '',
     required this.adminId,
     this.verified = false,
+    this.rejected = false,
   });
 
-  StartupModel copyWith({bool? verified}) {
+  StartupModel copyWith({bool? verified, bool? rejected}) {
     return StartupModel(
       id: id,
       companyName: companyName,
@@ -29,6 +31,7 @@ class StartupModel {
       website: website,
       adminId: adminId,
       verified: verified ?? this.verified,
+      rejected: rejected ?? this.rejected,
     );
   }
 
@@ -41,6 +44,7 @@ class StartupModel {
       'website': website,
       'adminId': adminId,
       'verified': verified,
+      'rejected': rejected,
     };
   }
 
@@ -54,6 +58,7 @@ class StartupModel {
       website: data['website'] ?? '',
       adminId: data['adminId'] ?? '',
       verified: data['verified'] ?? false,
+      rejected: data['rejected'] ?? false,
     );
   }
 }

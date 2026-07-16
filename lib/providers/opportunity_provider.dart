@@ -26,14 +26,14 @@ final opportunitiesProvider = StreamProvider<List<OpportunityModel>>((ref) {
   });
 });
 
-final myStartupProvider = FutureProvider.family<StartupModel?, String>((ref, startupId) async {
-  if (startupId.isEmpty) return null;
-  return ref.watch(startupRepoProvider).getById(startupId);
+final myStartupProvider = StreamProvider.family<StartupModel?, String>((ref, startupId) {
+  if (startupId.isEmpty) return Stream.value(null);
+  return ref.watch(startupRepoProvider).watchById(startupId);
 });
 
-final myStartupsProvider = FutureProvider.family<List<StartupModel>, String>((ref, adminId) async {
-  if (adminId.isEmpty) return [];
-  return ref.watch(startupRepoProvider).getAllByAdminId(adminId);
+final myStartupsProvider = StreamProvider.family<List<StartupModel>, String>((ref, adminId) {
+  if (adminId.isEmpty) return Stream.value([]);
+  return ref.watch(startupRepoProvider).watchAllByAdminId(adminId);
 });
 
 final unverifiedStartupsProvider = StreamProvider<List<StartupModel>>((ref) {

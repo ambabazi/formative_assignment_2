@@ -36,9 +36,13 @@ class StartupApplicationsScreen extends ConsumerWidget {
       backgroundColor: AluColors.surface,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          final user = ref.read(loggedInUserProvider);
+          if (user == null || user.startupId.isEmpty) return;
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const PostOpportunityScreen()),
+            MaterialPageRoute(
+              builder: (_) => PostOpportunityScreen(startupId: user.startupId),
+            ),
           );
         },
         backgroundColor: AluColors.red,

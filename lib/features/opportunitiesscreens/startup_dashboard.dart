@@ -19,18 +19,6 @@ class StartupDashboardScreen extends ConsumerStatefulWidget {
 class _StartupDashboardScreenState extends ConsumerState<StartupDashboardScreen> {
   bool showRegisterForm = false;
 
-  Future<void> switchStartup(String startupId) async {
-    final user = ref.read(loggedInUserProvider);
-    if (user == null) return;
-
-    await ref.read(authRepoProvider).selectActiveStartup(
-          uuid: user.uuid,
-          startupId: startupId,
-        );
-    ref.read(loggedInUserProvider.notifier).state =
-        user.copyWith(startupId: startupId);
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(loggedInUserProvider);
@@ -62,31 +50,14 @@ class _StartupDashboardScreenState extends ConsumerState<StartupDashboardScreen>
                       );
                   ref.read(loggedInUserProvider.notifier).state =
                       current.copyWith(startupId: startupId, onboardingComplete: true);
-                  ref.invalidate(myStartupsProvider(current.uuid));
                   if (mounted) setState(() => showRegisterForm = false);
                 },
               );
             }
 
-            final activeId = user.startupId.isNotEmpty &&
-                    startups.any((s) => s.id == user.startupId)
-                ? user.startupId
-                : startups.first.id;
-
-            if (user.startupId != activeId) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                switchStartup(activeId);
-              });
-            }
-
-            final activeStartup =
-                startups.firstWhere((s) => s.id == activeId, orElse: () => startups.first);
-
             return _StartupDashboardContent(
               userName: user.names,
               startups: startups,
-              activeStartup: activeStartup,
-              onSelectStartup: switchStartup,
               onRegisterAnother: startups.length < StartupRepo.maxStartupsPerAdmin
                   ? () => setState(() => showRegisterForm = true)
                   : null,
@@ -145,25 +116,18 @@ class _StartupDashboardScreenState extends ConsumerState<StartupDashboardScreen>
 class _StartupDashboardContent extends ConsumerWidget {
   final String userName;
   final List<StartupModel> startups;
-  final StartupModel activeStartup;
-  final ValueChanged<String> onSelectStartup;
   final VoidCallback? onRegisterAnother;
   final void Function(OpportunityModel opp) onDeleteOpportunity;
 
   const _StartupDashboardContent({
     required this.userName,
     required this.startups,
-    required this.activeStartup,
-    required this.onSelectStartup,
     required this.onRegisterAnother,
     required this.onDeleteOpportunity,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final opportunitiesAsync =
-        ref.watch(myStartupOpportunitiesProvider(activeStartup.id));
-
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -180,39 +144,8 @@ class _StartupDashboardContent extends ConsumerWidget {
           'Manage your registered startups',
           style: TextStyle(color: AluColors.lightGrey),
         ),
-        const SizedBox(height: 16),
-        if (startups.length > 1) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: startups.map((startup) {
-              final selected = startup.id == activeStartup.id;
-              return ChoiceChip(
-                label: Text(startup.companyName),
-                selected: selected,
-                onSelected: (_) => onSelectStartup(startup.id),
-                selectedColor: AluColors.navy.withValues(alpha: 0.15),
-                labelStyle: TextStyle(
-                  color: selected ? AluColors.navy : AluColors.lightGrey,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-        ],
-        Text(
-          activeStartup.companyName,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AluColors.navy,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _VerificationBanner(startup: activeStartup),
         if (onRegisterAnother != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: onRegisterAnother,
             icon: const Icon(Icons.add_business_outlined),
@@ -222,102 +155,142 @@ class _StartupDashboardContent extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'My Opportunities',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AluColors.navy,
-              ),
-            ),
-            if (activeStartup.verified)
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PostOpportunityScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add, color: AluColors.red),
-                label: const Text('Post', style: TextStyle(color: AluColors.red)),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        opportunitiesAsync.when(
-          data: (list) {
-            if (list.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AluColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  activeStartup.verified
-                      ? 'No opportunities posted yet. Tap Post to add one.'
-                      : 'Register and wait for ALU verification before posting opportunities.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AluColors.lightGrey),
-                ),
-              );
-            }
-
-            return Column(
-              children: list.map((opp) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AluColors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              opp.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AluColors.navy,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              opp.description,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AluColors.lightGrey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: AluColors.red),
-                        onPressed: () => onDeleteOpportunity(opp),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Error: $e'),
+        ...startups.map(
+          (startup) => _StartupSection(
+            startup: startup,
+            onDeleteOpportunity: onDeleteOpportunity,
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _StartupSection extends ConsumerWidget {
+  final StartupModel startup;
+  final void Function(OpportunityModel opp) onDeleteOpportunity;
+
+  const _StartupSection({
+    required this.startup,
+    required this.onDeleteOpportunity,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final opportunitiesAsync = ref.watch(myStartupOpportunitiesProvider(startup.id));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AluColors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            startup.companyName,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AluColors.navy,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _VerificationBanner(startup: startup),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Opportunities',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AluColors.navy,
+                ),
+              ),
+              if (startup.verified)
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PostOpportunityScreen(startupId: startup.id),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add, color: AluColors.red),
+                  label: const Text('Post', style: TextStyle(color: AluColors.red)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          opportunitiesAsync.when(
+            data: (list) {
+              if (list.isEmpty) {
+                return Text(
+                  startup.verified
+                      ? 'No opportunities posted yet. Tap Post to add one.'
+                      : 'Wait for ALU verification before posting opportunities.',
+                  style: const TextStyle(color: AluColors.lightGrey, fontSize: 13),
+                );
+              }
+
+              return Column(
+                children: list.map((opp) {
+                  return Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AluColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                opp.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AluColors.navy,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                opp.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AluColors.lightGrey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: AluColors.red),
+                          onPressed: () => onDeleteOpportunity(opp),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            error: (e, _) => Text('Error: $e'),
+          ),
+        ],
+      ),
     );
   }
 }

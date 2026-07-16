@@ -51,7 +51,7 @@ class _MyApplicationScreenState extends ConsumerState<MyApplicationScreen> {
       return const Scaffold(body: Center(child: Text('Please sign in')));
     }
 
-    final applications = ref.watch(myApplicationsProvider(user.uuid));
+    final applications = ref.watch(myApplicationsEnrichedProvider(user.uuid));
 
     return Scaffold(
       backgroundColor: AluColors.surface,
@@ -60,7 +60,9 @@ class _MyApplicationScreenState extends ConsumerState<MyApplicationScreen> {
           data: (list) {
             final filtered = selectedFilter == 'All'
                 ? list
-                : list.where((a) => a.status.name == selectedFilter).toList();
+                : list
+                    .where((a) => a.application.status.name == selectedFilter)
+                    .toList();
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +115,8 @@ class _MyApplicationScreenState extends ConsumerState<MyApplicationScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: filtered.length,
                           itemBuilder: (context, index) {
-                            final app = filtered[index];
+                            final item = filtered[index];
+                            final app = item.application;
                             final color = statusColor(app.status);
 
                             return Container(
@@ -139,10 +142,19 @@ class _MyApplicationScreenState extends ConsumerState<MyApplicationScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Opportunity',
+                                          item.opportunityTitle,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                             color: AluColors.navy,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          item.startupName,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AluColors.red,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                         const SizedBox(height: 4),

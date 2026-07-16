@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/application_model.dart';
 import '../../models/opportunity_model.dart';
+import '../../models/startup_model.dart';
 import '../../providers/application_providers.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/opportunity_provider.dart';
@@ -19,6 +20,24 @@ class ApplyScreen extends ConsumerStatefulWidget {
 
 class _ApplyScreenState extends ConsumerState<ApplyScreen> {
   bool isLoading = false;
+  String? startupName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStartupName();
+  }
+
+  Future<void> _loadStartupName() async {
+    final startup =
+        await ref.read(startupRepoProvider).getById(widget.opportunity.startupId);
+    if (mounted) {
+      setState(() {
+        final name = startup?.companyName.trim() ?? '';
+        startupName = name.isNotEmpty ? name : null;
+      });
+    }
+  }
 
   Future<void> handleApply() async {
     final user = ref.read(loggedInUserProvider);
@@ -36,6 +55,7 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
 
       await ref.read(applicationRepoProvider).submit(application);
       ref.invalidate(myApplicationsProvider(user.uuid));
+      ref.invalidate(myApplicationsEnrichedProvider(user.uuid));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -52,6 +72,13 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  String _displayStartupName(StartupModel? streamed) {
+    final streamedName = streamed?.companyName.trim() ?? '';
+    if (streamedName.isNotEmpty) return streamedName;
+    if (startupName != null) return startupName!;
+    return 'Startup';
   }
 
   @override
@@ -92,31 +119,59 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
                   ),
                   const SizedBox(height: 8),
                   startupAsync.when(
-                    data: (startup) => startup == null
-                        ? const SizedBox.shrink()
-                        : Row(
-                            children: [
-                              const Icon(
-                                Icons.business_outlined,
-                                size: 16,
-                                color: AluColors.red,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                startup.companyName,
-                                style: const TextStyle(
-                                  color: AluColors.navy,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                    data: (startup) => Row(
+                      children: [
+                        const Icon(
+                          Icons.business_outlined,
+                          size: 16,
+                          color: AluColors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _displayStartupName(startup),
+                            style: const TextStyle(
+                              color: AluColors.navy,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                    loading: () => const SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ],
                     ),
-                    error: (_, __) => const SizedBox.shrink(),
+                    loading: () => Row(
+                      children: [
+                        const Icon(
+                          Icons.business_outlined,
+                          size: 16,
+                          color: AluColors.red,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          startupName ?? 'Loading startup...',
+                          style: const TextStyle(
+                            color: AluColors.navy,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    error: (_, __) => Row(
+                      children: [
+                        const Icon(
+                          Icons.business_outlined,
+                          size: 16,
+                          color: AluColors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          startupName ?? 'Startup',
+                          style: const TextStyle(
+                            color: AluColors.navy,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (widget.opportunity.location.isNotEmpty)

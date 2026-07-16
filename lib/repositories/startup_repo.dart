@@ -59,7 +59,7 @@ class StartupRepo {
         list.add(StartupModel.fromFirestore(doc.data(), doc.id));
       }
 
-      return list;
+      return list.where((s) => !s.rejected).toList();
     });
   }
 
@@ -69,6 +69,13 @@ class StartupRepo {
     if (!doc.exists) return null;
 
     return StartupModel.fromFirestore(doc.data()!, doc.id);
+  }
+
+  Stream<StartupModel?> watchById(String id) {
+    return db.collection(collectionName).doc(id).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return StartupModel.fromFirestore(doc.data()!, doc.id);
+    });
   }
 
   Future<StartupModel?> getByAdminId(String adminId) async {
@@ -92,6 +99,22 @@ class StartupRepo {
     return list;
   }
 
+  Stream<List<StartupModel>> watchAllByAdminId(String adminId) {
+    return db
+        .collection(collectionName)
+        .where('adminId', isEqualTo: adminId)
+        .snapshots()
+        .map((snapshot) {
+      final List<StartupModel> list = [];
+
+      for (final doc in snapshot.docs) {
+        list.add(StartupModel.fromFirestore(doc.data(), doc.id));
+      }
+
+      return list;
+    });
+  }
+
   static const int maxStartupsPerAdmin = 2;
 
   Future<String> create(StartupModel startup) async {
@@ -110,5 +133,9 @@ class StartupRepo {
 
   Future<void> setVerified(String id, bool verified) async {
     await db.collection(collectionName).doc(id).update({'verified': verified});
+  }
+
+  Future<void> rejectStartup(String id) async {
+    await db.collection(collectionName).doc(id).update({'rejected': true});
   }
 }

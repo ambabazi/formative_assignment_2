@@ -98,10 +98,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       value: UserRole.startupAdmin,
                       child: Text('Startup Admin (ALU student founder)'),
                     ),
-                    DropdownMenuItem(
-                      value: UserRole.admin,
-                      child: Text('ALU Admin (staff only)'),
-                    ),
                   ],
                   onChanged: (value) {
                     if (value != null) setState(() => selectedRole = value);

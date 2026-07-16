@@ -20,6 +20,7 @@ class _AdminStartupDetailScreenState extends ConsumerState<AdminStartupDetailScr
   UserModel? founder;
   bool isLoading = true;
   bool isVerifying = false;
+  bool isRejecting = false;
 
   @override
   void initState() {
@@ -57,6 +58,51 @@ class _AdminStartupDetailScreenState extends ConsumerState<AdminStartupDetailScr
       }
     } finally {
       if (mounted) setState(() => isVerifying = false);
+    }
+  }
+
+  Future<void> rejectStartup() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject startup?'),
+        content: Text(
+          'Reject ${widget.startup.companyName}? It will be removed from the verification queue.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: AluColors.red),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => isRejecting = true);
+    try {
+      await ref.read(startupRepoProvider).rejectStartup(widget.startup.id);
+      ref.invalidate(unverifiedStartupsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${widget.startup.companyName} rejected')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not reject: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isRejecting = false);
     }
   }
 
@@ -207,6 +253,21 @@ class _AdminStartupDetailScreenState extends ConsumerState<AdminStartupDetailScr
                     ),
                   )
                 : const Text('Verify startup'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: isRejecting ? null : rejectStartup,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AluColors.red,
+              side: const BorderSide(color: AluColors.red),
+            ),
+            child: isRejecting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Reject startup'),
           ),
         ],
       ),

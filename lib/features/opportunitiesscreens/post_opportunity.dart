@@ -6,7 +6,9 @@ import '../../providers/opportunity_provider.dart';
 import '../../utils/alu_theme.dart';
 
 class PostOpportunityScreen extends ConsumerStatefulWidget {
-  const PostOpportunityScreen({super.key});
+  final String startupId;
+
+  const PostOpportunityScreen({super.key, required this.startupId});
 
   @override
   ConsumerState<PostOpportunityScreen> createState() =>
@@ -42,7 +44,7 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
       return;
     }
 
-    final startup = await ref.read(startupRepoProvider).getById(user.startupId);
+    final startup = await ref.read(startupRepoProvider).getById(widget.startupId);
     if (!mounted) return;
     if (startup == null || !startup.verified) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -65,7 +67,7 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
     try {
       final opportunity = OpportunityModel(
         id: '',
-        startupId: user.startupId,
+        startupId: widget.startupId,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
         location: locationController.text.trim(),
@@ -84,6 +86,7 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Opportunity posted')),
         );
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -100,22 +103,20 @@ class _PostOpportunityScreenState extends ConsumerState<PostOpportunityScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AluColors.surface,
+      appBar: AppBar(
+        title: const Text('Post Opportunity'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: ListView(
             children: [
               const Text(
-                'Post Opportunity',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AluColors.navy,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Share an internship or role with ALU students',
+                'Share a role with ALU students',
                 style: TextStyle(color: AluColors.lightGrey),
               ),
               const SizedBox(height: 24),
